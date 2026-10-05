@@ -1,0 +1,18 @@
+# Guessing game with a single-step query that is likely slow as length increases
+# Example with a four-bit guess 
+g0 : enum {b0, b1}
+g1 : enum {b0, b1}
+g2 : enum {b0, b1}
+g3 : enum {b0, b1}
+
+# encode the correct answer, e.g., <0,1,0,1>
+secret <- g0=b1 & g1=b0 & g2=b1 & g3=b0.
+
+# set each bit of the guess individually
+<set0>g0=b0. <set0>g0=b1.
+<set1>g1=b0. <set1>g1=b1.
+<set2>g2=b0. <set2>g2=b1.
+<set3>g3=b0. <set3>g3=b1.
+
+# Search for an execution that finds the secret.
+?- <set0><set1><set2><set3>secret.

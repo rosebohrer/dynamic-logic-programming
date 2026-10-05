@@ -1,0 +1,61 @@
+p1 : enum {z, o, t, th}
+p2 : enum {z, o, t, th}
+p3 : enum {z, o, t, th}
+
+p1='o -> <take1> p1='z.
+p1='t -> <take1> p1='z.
+p1='t -> <take1> p1='o.
+p1='th -> <take1> p1='z.
+p1='th -> <take1> p1='o.
+p1='th -> <take1> p1='t.
+
+p2='o -> <take2> p2='z.
+p2='t -> <take2> p2='z.
+p2='t -> <take2> p2='o.
+p2='th -> <take2> p2='z.
+p2='th -> <take2> p2='o.
+p2='th -> <take2> p2='t.
+
+p3='o -> <take3> p3='z.
+p3='t -> <take3> p3='z.
+p3='t -> <take3> p3='o.
+p3='th -> <take3> p3='z.
+p3='th -> <take3> p3='o.
+p3='th -> <take3> p3='t.
+
+take ::= take1 U take2 U take3.
+
+p1='z & p2='z & p3='z -> inv.
+p1='o & p2='o & p3='z -> inv.
+p1='t & p2='t & p3='z -> inv.
+p1='th & p2='th & p3='z -> inv.
+p1='t & p2='o & p3='th -> inv.
+p1='o & p2='t & p3='th -> inv.
+p1='t & p2='th & p3='o -> inv.
+p1='o & p2='th & p3='t -> inv.
+p1='th & p2='t & p3='o -> inv.
+p1='th & p2='o & p3='t -> inv.
+p1='z & p2='o & p3='o -> inv.
+p1='z & p2='t & p3='t -> inv.
+p1='z & p2='th & p3='th -> inv.
+p1='o & p2='z & p3='o -> inv.
+p1='t & p2='z & p3='t -> inv.
+p1='th & p2='z & p3='th -> inv.
+
+?- 
+(p1='z & p2='z & p3='z -> [take]<take>inv)
+&(p1='o & p2='o & p3='z -> [take]<take>inv)
+&(p1='t & p2='t & p3='z -> [take]<take>inv)
+&(p1='th & p2='th & p3='z -> [take]<take>inv)
+&(p1='t & p2='o & p3='th -> [take]<take>inv)
+&(p1='o & p2='t & p3='th -> [take]<take>inv)
+&(p1='t & p2='th & p3='o -> [take]<take>inv)
+&(p1=o & p2='th & p3='t -> [take]<take>inv)
+&(p1='th & p2='t & p3='o -> [take]<take>inv)
+&(p1='th & p2='o & p3='t -> [take]<take>inv)
+&(p1='z & p2='o & p3='o -> [take]<take>inv)
+&(p1='z & p2='t & p3='t -> [take]<take>inv)
+&(p1='z & p2='th & p3='th -> [take]<take>inv)
+&(p1='o & p2='z & p3='o -> [take]<take>inv)
+&(p1='t & p2='z & p3='t -> [take]<take>inv)
+&(p1='th & p2='z & p3='th -> [take]<take>inv).

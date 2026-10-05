@@ -1,0 +1,10 @@
+# The start state s is a final (accepting) state
+final <- s.
+
+# Letter 'b' alternates between s and a; does nothing in dead state
+[b]a <- s, [b]s <- a, [b]d <- d.
+# Letter 'a' always goes to a dead state
+[a]d <- a, [a]d <- s, [a]d <- d.
+
+# Any number of copies of "bb" results in a final state, specifically s
+?- s -> [(b;b)*@inv(s)] final

@@ -1,0 +1,20 @@
+TODO: Bugfix: underestimates bound variables when applying [a]true rule, unsound.
+
+Main:
+-   Implementation of test runner
+
+Medium priority:
+TODO: Better error reporting for forgetting to add <a>true <b>true assumption in code.
+TODO: In REPL parser, detect common mistakes and suggest corrections
+TODO: String interning and use integer identifiers for variables everywhere.
+TODO: Proof term extraction and independent re-checking.
+
+Low priority:
+TODO: procedural macro EDSL within Rust
+TODO: Implement code synthesizer
+TODO: Further improve positioning of spans in parser.rs
+
+TODO: Explore railroad applications
+TODO: Explore robotics applications
+TODO: Explore network security applications
+TODO: Explore applications to databases (probably need unification variables to search)

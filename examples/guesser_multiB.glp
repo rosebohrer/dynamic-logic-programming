@@ -1,0 +1,20 @@
+# Guessing game implemented across two files and two queries that is likely to 
+# become more optimal as size increases.
+
+# Declare four bits of guess
+g0 : enum {b0, b1} 
+g1 : enum {b0, b1}
+g2 : enum {b0, b1}
+g3 : enum {b0, b1}
+
+# encode the correct answer, e.g., <0,1,0,1>
+secret <- g0=b1 & g1=b0 & g2=b1 & g3=b0.
+
+# declare as assumptions the lemmas already proved in guesser_multiA.glp
+<set0>g0=b1.
+g0=b1 -> <set1>(g0=b1&g1=b0).
+g0=b1&g1=b0 -> <set2>(g0=b1&g1=b0&g2=b1).
+g0=b1&g1=b0&g2=b1 -> <set3>(g0=b1&g1=b0&g2=b1&g3=b0).
+
+# Final query proves more quickly as result of lemmas
+?- <set0><set1><set2><set3>secret.

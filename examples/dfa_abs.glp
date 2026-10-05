@@ -1,0 +1,7 @@
+final <- s.
+
+[a]s <- s, [a]d <- d.
+[b]s <- s, [b]d <- d.
+[c]d <- s, [c]d <- d.
+
+?- s -> [(a U b)*@inv(s)] final

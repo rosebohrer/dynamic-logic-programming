@@ -1,0 +1,20 @@
+# Guessing game implemented across two files and two queries that is likely to 
+# become more optimal as size increases.
+
+# Example with a four-bit guess 
+g0 : enum {b0, b1}
+g1 : enum {b0, b1}
+g2 : enum {b0, b1}
+g3 : enum {b0, b1}
+
+# set each bit of the guess individually
+<set0>g0=b0. <set0>g0=b1.
+<set1>g1=b0. <set1>g1=b1.
+<set2>g2=b0. <set2>g2=b1.
+<set3>g3=b0. <set3>g3=b1.
+
+# Search for an execution that finds the secret.
+?-  (<set0>g0=b1)
+   &(g0=b1 -> <set1>(g0=b1&g1=b0))
+   &(g0=b1&g1=b0 -> <set2>(g0=b1&g1=b0&g2=b1))
+   &(g0=b1&g1=b0&g2=b1 -> <set3>(g0=b1&g1=b0&g2=b1&g3=b0)).

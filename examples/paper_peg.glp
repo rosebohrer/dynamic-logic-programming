@@ -1,0 +1,11 @@
+ [l]ab <- ac, [l]bc <- bd, [l]cd <- ca, [l]da <- db.
+ [r]ad <- ac, [r]ba <- bd, [r]cb <- ca, [r]dc <- db.
+
+ demon-turn ::= l U r.
+
+ [la]db <- ab, [la]ac <- bc, [la]bd <- cd, [la]ca <- da.
+ [ra]bd <- ad, [ra]ca <- ba, [ra]db <- cb, [ra]ac <- dc.
+
+ angel-turn ::= (?ab;la U ?bc;la U ?cd;la U ?da;la) U (?ad;ra U ?ba;ra U ?cb;ra U ?dc;ra).
+ 
+ ?- ac -> [(demon-turn;angel-turn)*@inv(ac|bd|ca|db)] (ac|bd|ca|db)

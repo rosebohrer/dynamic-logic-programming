@@ -1,0 +1,17 @@
+# Prove that our counter catches up with the other counter. Not a perfect encoding of the LTL property
+b1 : enum {z, o}
+b2 : enum {z, o}
+e1 : enum {z, o}
+e2 : enum {z, o}
+
+b1=z -> <binc>b1=o.
+b1=o & b2=z -> <binc>(b1=z & b2=o).
+b1=o & b2=o -> <binc>(b1=z & b2=z).
+
+e1=z -> <inc>e1=o.
+e1=o & e2=z -> <inc>(e1=z & e2=o).
+e1=o & e2=o -> <inc>(e1=z & e2=z).
+
+steps ::= (binc U ?true) ; (inc ; inc U inc).
+
+?- b1=o & b2=z & e0=z & e1=z -> <steps*>(b1=e1 & b2=e2).

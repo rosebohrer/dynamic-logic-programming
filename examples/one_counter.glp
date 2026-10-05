@@ -1,0 +1,8 @@
+b1 : enum {z, o}
+b2 : enum {z, o}
+b1=z -> <inc>b1=o.
+b1=o & b2=z -> <inc>(b1=z & b2=o).
+b1=o & b2=o -> <inc>(b1=z & b2=z).
+steps ::= inc U (inc; inc).
+
+?- b1=o & b2=z -> <steps*>(b1=z & b2=z).
