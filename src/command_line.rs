@@ -97,7 +97,7 @@ impl CommandLineArgs {
 
     /** Arguments appropriate for test cases that test the synthesizer */
     pub const SYNTH: CommandLineArgs = CommandLineArgs { 
-        help: false, verbose: true, debug: true, interactive: false, synthesize: true, input_files: vec![]
+        help: false, verbose: true, debug: false, interactive: false, synthesize: true, input_files: vec![]
     };
 
     /** Read and parse all arguments from environment. Expensive. */

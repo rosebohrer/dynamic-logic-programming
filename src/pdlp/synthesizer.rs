@@ -1,6 +1,7 @@
 /*! Exploits proof search to generate a program which satisfies the given specification 
   This synthesis algorithm is designed for the box-free fragment of PDLP.
 */
+use crate::command_line::Verbosity::DebugVerbose;
 use crate::command_line::{CommandLineArgs, Verbosity};
 use crate::ast::{Formula,Program,FormulaNode,ProgramNode};
 use FormulaNode::*; use ProgramNode::*;
@@ -55,7 +56,7 @@ impl Synthesizer {
     /** Start proof search */
     pub fn start(&mut self) -> () {
         if !self.ca.is_synthesizer_enabled() { return; }
-        //println!("TRACE: START");
+        if self.ca.verbosity() == DebugVerbose { println!("TRACE: START"); }
         self.stack = vec![vec![SynthRecord{sl: vec![]}]];
     }
     
@@ -64,15 +65,14 @@ impl Synthesizer {
      */
     pub fn branch(&mut self, c: &String, n: usize) -> () {
         if !self.ca.is_synthesizer_enabled() { return; }
-        //println!("TRACE: BRANCH {}/{}", c, n);
+        if self.ca.verbosity() == DebugVerbose { println!("TRACE: BRANCH {}/{}", c, n); }
         if self.stack.is_empty() || self.stack.last().expect("NONEMPTY").is_empty() {
-            //println!("TRACE: STACK: {:?}", self.stack.clone());
+            if self.ca.verbosity() == DebugVerbose { println!("TRACE: STACK: {:?}", self.stack.clone()); }
             return;
         }
         /** Binary branching with no effect on program, just add 1 alternative */
         if n == 0 {
             let curr = self.stack.last().expect("NONEMPTY")[0].clone();
-            /** @TODO: 2 branches or 1? */
             self.stack.push(vec![curr.clone(), curr]);
         } else /* Real branching */ { 
             let curr = self.stack.last().expect("NONEMPTY")[0].clone();            
@@ -91,11 +91,7 @@ impl Synthesizer {
     /** Try next branch */
     pub fn next(&mut self) -> () {
         if !self.ca.is_synthesizer_enabled() { return; }
-        //println!("TRACE: NEXT-START: {:?}", self.stack);
-        /* @TODO:  I think this loop is dead code, it's an invariant that the lists are nonempty */
-        while !self.stack.is_empty() && self.stack.last().expect("NONEMPTY").is_empty() {
-          self.stack.pop();
-        }
+        if self.ca.verbosity() == DebugVerbose { println!("TRACE: NEXT-START: {:?}", self.stack); }
         if self.stack.is_empty() {
           return;
         } else {
@@ -105,7 +101,7 @@ impl Synthesizer {
             let _alt = alts.remove(0);
             if !alts.is_empty() { self.stack.push(alts); break; }
           } 
-        //println!("TRACE: NEXT-END: {:?}", self.stack);
+        if self.ca.verbosity() == DebugVerbose { println!("TRACE: NEXT-END: {:?}", self.stack); }
         }
     }
     
@@ -117,6 +113,6 @@ impl Synthesizer {
         // records within a point behave left-right so take leftmost
         let record = if point.is_empty() { SynthRecord { sl : vec![]} } else {point[0].clone() }; 
         self.result = Some (record);
-        println!("TRACE: FINISH: {:?}", self.result);
+        if self.ca.verbosity() == DebugVerbose { println!("TRACE: FINISH: {:?}", self.result); }
     }
 }
