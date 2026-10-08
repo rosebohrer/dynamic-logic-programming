@@ -374,12 +374,14 @@ impl<'a> Machine<'a> {
   }
 
   /** Implement invocation of symbol predicates ending with diamond formulas. */
-  fn diamond_pred_case(&self, out: &mut Vec<Vec<Goal>>, g: &Goal, symbol: &String, post: &Formula) {
+  fn diamond_pred_case(&mut self, out: &mut Vec<Vec<Goal>>, g: &Goal, symbol: &String, post: &Formula) {
     let mut ctxt : HashSet<Formula> = HashSet::new();
     for x in &g.assumps {
       ctxt.insert(x.clone());
     }
     let clauses = &self.sm.diamond_preds[symbol];
+    /** Make sure to copy this updated synthesizer state properly in the main run() loop! */
+    self.dm.syn.branch(symbol, clauses.len());
     for clause in clauses {
       let mut skip = false;
       let assumps = statics_common::assumption_conjs(&clause);
@@ -481,7 +483,8 @@ impl<'a> Machine<'a> {
   }
   /** Lossless steps applicable to conclusion of given goal. */
   fn right_steps_at_goal(&mut self, close: &mut Vec<Vec<Goal>>, lossless: &mut Vec<Vec<Goal>>, lossy: &mut Vec<Vec<Goal>>, i: usize) {
-    let g = &self.dm.goals[i];
+    /** @TODO: Would prefer not to have to clone here. */
+    let g = &self.dm.goals[i].clone();
     let s0 = g.concl.span;
     match &g.concl.node {
       MBox(prog, p) => {
@@ -581,6 +584,8 @@ impl<'a> Machine<'a> {
         }
       },
       Or(p, q) => {
+        /** Make sure to copy this updated synthesizer state properly in the main run() loop! */
+        self.dm.syn.branch(&"N/A".to_string(), 0);
         lossy.push(vec![Goal {assumps: g.assumps.clone(), concl:*p.clone()}]);
         lossy.push(vec![Goal {assumps: g.assumps.clone(), concl:*q.clone()}]);
       },
@@ -636,6 +641,7 @@ impl<'a> Machine<'a> {
   }
   /** Perform proof search. */
   pub fn run(&mut self)  {
+    self.dm.syn.start();
     loop {
       if self.dm.d.verbosity().is_debug() {
         //println!("{}", printer::machine(self));
@@ -645,6 +651,7 @@ impl<'a> Machine<'a> {
         return;
       }
       if self.is_proved() {
+        self.dm.syn.finish();
         return;
       }
       let mut succs = self.steps();
@@ -659,6 +666,7 @@ impl<'a> Machine<'a> {
         }
         self.dm.stack.push(alts);
       } else {
+        self.dm.syn.next();
         while !self.dm.stack.is_empty() && self.dm.stack.last().expect("NONEMPTY").is_empty() {
           self.dm.stack.pop();
         }

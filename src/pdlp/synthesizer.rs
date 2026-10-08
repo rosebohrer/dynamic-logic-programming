@@ -52,24 +52,61 @@ impl Synthesizer {
         Synthesizer {ca: CommandLineArgs::DEFAULT, stack: vec![], result: None}
     } 
 
-    /** @TODO: Confirm that this API is sufficient by reading dynamics */
     /** Start proof search */
     pub fn start(&mut self) -> () {
-        self.stack = vec![vec![SynthRecord{sl: vec![]}]]
+        if !self.ca.is_synthesizer_enabled() { return; }
+        self.stack = vec![vec![SynthRecord{sl: vec![]}]];
     }
     
-    /** Split into n branches for constant c */
+    /** Split into n branches for constant c
+     * usize < 1 indicates branching that does not generate code, such as or-branching.
+     */
+    /** @TODO: Implement branch logic here */
+    /** @TODO: Test synth on guesser case in paper experiments */
     pub fn branch(&mut self, c: &String, n: usize) -> () {
-
+        if !self.ca.is_synthesizer_enabled() { return; }
+        if !self.stack.is_empty() || self.stack.last().expect("NONEMPTY").is_empty() {
+            return;
+        }
+        /** Binary branching with no effect on program, just add 1 alternative */
+        if n == 0 {
+            let curr = self.stack.last().expect("NONEMPTY")[0].clone();
+            /** @TODO: 2 branches or 1? */
+            self.stack.push(vec![curr.clone(), curr]);
+        } else /* Real branching */ { 
+            let curr = self.stack.last().expect("NONEMPTY")[0].clone();            
+            let mut alts = vec![];
+            for i in 0..n {
+                let sc = SynthConst { c: c.clone(), i};
+                let mut sl = curr.sl.clone();
+                sl.push(sc);
+                let sr = SynthRecord { sl };
+                alts.push(sr);
+            }
+            self.stack.push(alts);
+        }
     }
     
     /** Try next branch */
     pub fn next(&mut self) -> () {
-
+        if !self.ca.is_synthesizer_enabled() { return; }
+        while !self.stack.is_empty() && self.stack.last().expect("NONEMPTY").is_empty() {
+          self.stack.pop();
+        }
+        if self.stack.is_empty() {
+          return;
+        } else {
+          let mut alts = self.stack.pop().expect("NONEMPTY");
+          let alt = alts.remove(0);
+          /*self.curr  = alt; */
+          self.stack.push(alts);
+        }
     }
     
     /** Search has succeeeded, record current candidate program as a winner */
     pub fn finish(&mut self) -> () {
-
+        if !self.ca.is_synthesizer_enabled() { return; }
+        self.result = Some (self.stack[0][0].clone());
+        println!("Synthesis finished: {:?}", self.result);
     }
 }
