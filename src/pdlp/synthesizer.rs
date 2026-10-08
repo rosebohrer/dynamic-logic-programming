@@ -14,6 +14,12 @@ pub struct SynthConst {
     i: usize,
 }
 
+impl SynthConst {
+    pub fn pretty_string(&self) -> String {
+        format!("{}-{}", self.c, self.i)
+    }
+}
+
 /** The synthesis state for a single branch of proof search (which may have multiple open goals).
   When multiple goals G1 & ... & GN are open, all except GN represent test conditions, which do not
   contribute to the synthesized program. Thus it is sufficient to consider only GN.
@@ -24,6 +30,19 @@ pub struct SynthConst {
 #[derive(Clone, Debug)]
 pub struct SynthRecord { 
     sl: Vec<SynthConst>,
+}
+
+impl SynthRecord {
+    pub fn pretty_string(&self) -> String {
+        if self.sl.is_empty() {
+            return "Empty".to_string();
+        }
+        let mut acc = self.sl[0].pretty_string();
+        for i in 1..self.sl.len() {
+            acc = format!("{};{}", acc, self.sl[i].pretty_string())
+        }
+        acc
+    }
 }
 
 /** Main data structure for synthesis, contains entire state during proof search, covering
@@ -43,6 +62,14 @@ pub struct Synthesizer {
 }
 
 impl Synthesizer {
+    /** Pretty-print string for code */
+    pub fn pretty_result(&self) -> String {
+        match self.result.clone() {
+            None => "None".to_string(),
+            Some(res) => res.pretty_string(),
+        }
+    }
+
     /** Initialize synthesizer based on provided command line flags */
     pub fn of_command_line(ca: &CommandLineArgs) -> Self {
         Synthesizer {ca: ca.clone(), stack: vec![], result: None}
@@ -113,6 +140,6 @@ impl Synthesizer {
         // records within a point behave left-right so take leftmost
         let record = if point.is_empty() { SynthRecord { sl : vec![]} } else {point[0].clone() }; 
         self.result = Some (record);
-        if self.ca.verbosity() == DebugVerbose { println!("TRACE: FINISH: {:?}", self.result); }
+        println!("TRACE: FINISH: {:?}", self.pretty_result());
     }
 }
