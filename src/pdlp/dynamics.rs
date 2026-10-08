@@ -226,6 +226,7 @@ impl<'a> Machine<'a> {
   /** Remember the command line arguments. */
   pub fn set_command_line(&mut self, ca: &CommandLineArgs) {
     self.dm.d = Debugger::of_command_line(ca);
+    self.dm.syn = Synthesizer::of_command_line(ca);
   }
 
   /** Create an empty machine.

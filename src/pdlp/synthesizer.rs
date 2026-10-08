@@ -55,17 +55,18 @@ impl Synthesizer {
     /** Start proof search */
     pub fn start(&mut self) -> () {
         if !self.ca.is_synthesizer_enabled() { return; }
+        //println!("TRACE: START");
         self.stack = vec![vec![SynthRecord{sl: vec![]}]];
     }
     
     /** Split into n branches for constant c
      * usize < 1 indicates branching that does not generate code, such as or-branching.
      */
-    /** @TODO: Implement branch logic here */
-    /** @TODO: Test synth on guesser case in paper experiments */
     pub fn branch(&mut self, c: &String, n: usize) -> () {
         if !self.ca.is_synthesizer_enabled() { return; }
-        if !self.stack.is_empty() || self.stack.last().expect("NONEMPTY").is_empty() {
+        //println!("TRACE: BRANCH {}/{}", c, n);
+        if self.stack.is_empty() || self.stack.last().expect("NONEMPTY").is_empty() {
+            //println!("TRACE: STACK: {:?}", self.stack.clone());
             return;
         }
         /** Binary branching with no effect on program, just add 1 alternative */
@@ -90,23 +91,32 @@ impl Synthesizer {
     /** Try next branch */
     pub fn next(&mut self) -> () {
         if !self.ca.is_synthesizer_enabled() { return; }
+        //println!("TRACE: NEXT-START: {:?}", self.stack);
+        /* @TODO:  I think this loop is dead code, it's an invariant that the lists are nonempty */
         while !self.stack.is_empty() && self.stack.last().expect("NONEMPTY").is_empty() {
           self.stack.pop();
         }
         if self.stack.is_empty() {
           return;
         } else {
-          let mut alts = self.stack.pop().expect("NONEMPTY");
-          let alt = alts.remove(0);
-          /*self.curr  = alt; */
-          self.stack.push(alts);
+          loop {
+            if self.stack.is_empty() || self.stack.last().expect("NONEMPTY").is_empty(){ return; }
+            let mut alts = self.stack.pop().expect("NONEMPTY");
+            let _alt = alts.remove(0);
+            if !alts.is_empty() { self.stack.push(alts); break; }
+          } 
+        //println!("TRACE: NEXT-END: {:?}", self.stack);
         }
     }
     
     /** Search has succeeeded, record current candidate program as a winner */
     pub fn finish(&mut self) -> () {
         if !self.ca.is_synthesizer_enabled() { return; }
-        self.result = Some (self.stack[0][0].clone());
-        println!("Synthesis finished: {:?}", self.result);
+        // points behave like a stack FIFO
+        let point = if self.stack.is_empty() { vec![] } else {self.stack.last().expect("NONEMPTY").clone() }; 
+        // records within a point behave left-right so take leftmost
+        let record = if point.is_empty() { SynthRecord { sl : vec![]} } else {point[0].clone() }; 
+        self.result = Some (record);
+        println!("TRACE: FINISH: {:?}", self.result);
     }
 }

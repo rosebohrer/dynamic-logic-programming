@@ -95,6 +95,11 @@ impl CommandLineArgs {
         help: false, verbose: true, debug: true, interactive: false, synthesize: false, input_files: vec![]
     };
 
+    /** Arguments appropriate for test cases that test the synthesizer */
+    pub const SYNTH: CommandLineArgs = CommandLineArgs { 
+        help: false, verbose: true, debug: true, interactive: false, synthesize: true, input_files: vec![]
+    };
+
     /** Read and parse all arguments from environment. Expensive. */
     pub fn from_env() -> Self {
         let mut pargs = pico_args::Arguments::from_env();    
