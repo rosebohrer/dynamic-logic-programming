@@ -15,7 +15,7 @@ files are maintained separately because
 use crate::ast::{Formula,Program,FormulaNode,ProgramNode,DefnNode,LogicProgram,Defn,Term};
 use crate::ast::respan as respan;
 use crate::ddlp::statics;
-use crate::pdlp::printer;
+use crate::pdlp::{printer,synthesizer::Synthesizer};
 use crate::command_line::CommandLineArgs;
 use crate::debugger::Debugger;
 use crate::ast::{Span,Spanned};
@@ -34,7 +34,6 @@ pub struct Goal {
     pub assumps: Vec<Formula>,
     pub concl: Formula,
 }
-
 
 impl Goal {
   /** Initial goal in empty machine to distinguish it from proved machine. */
@@ -180,6 +179,8 @@ pub struct DynamicMachine {
     pub stack: Vec<Vec<Vec<Goal>>>,
     /** Remember debug print level, step count, etc. */
     pub d: Debugger,
+    /** Extracts a program which satisfies the query through proof search */
+    pub syn: Synthesizer,
 }
 
 impl DynamicMachine {
@@ -187,7 +188,8 @@ impl DynamicMachine {
     let goals = vec![Goal::INIT]; // Non-empty so that is_proved() = false
     let stack = vec![];
     let d = Debugger::default();
-    DynamicMachine {goals, stack, d}
+    let syn = Synthesizer::default();
+    DynamicMachine {goals, stack, d, syn}
   }
 }
 
@@ -249,7 +251,7 @@ impl<'a> Machine<'a> {
   fn splice_goals(&mut self, i: usize, insert_goals: Vec<Goal>) -> Self {
     let mut new_goals: Vec<Goal> = vec![];
     let Machine { sm, dm } = self.clone();
-    let DynamicMachine {d, goals, stack} = dm;
+    let DynamicMachine {d, goals, stack, syn} = dm;
     for j in 0..i {
         new_goals.push(goals[j].clone());
     }
@@ -257,7 +259,7 @@ impl<'a> Machine<'a> {
     for j in i+1..goals.len() {
         new_goals.push(goals[j].clone());
     }
-    Machine { sm, dm: DynamicMachine {d, goals: new_goals, stack} }
+    Machine { sm, dm: DynamicMachine {d, goals: new_goals, stack, syn} }
   }
 
   /** Replace assumption i of goal g with vector of assumptions */
@@ -287,7 +289,7 @@ impl<'a> Machine<'a> {
     self.dm.goals.len() != 0 && self.dm.stack.len() == 0 && self.steps().len() == 0
   }
 
-   /** Compute lossless steps applicable to given assumption of a goal. */
+  /** Compute lossless steps applicable to given assumption of a goal. */
   fn left_steps_at_assump(&self, close: &mut Vec<Vec<Goal>>, lossless: &mut Vec<Vec<Goal>>, i: usize, j: usize) {
     let g = &self.dm.goals[i];
     // Hypothesis rule
@@ -312,7 +314,7 @@ impl<'a> Machine<'a> {
     }
   }
 
-    /** If string is defined as an atom predicate, count branches. Else 0. */
+  /** If string is defined as an atom predicate, count branches. Else 0. */
   fn atom_pred_arity(&self, p: &String) -> usize {
     match self.sm.atom_preds.get(p) {
       Some(defn) => defn.len(),

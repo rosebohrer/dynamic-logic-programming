@@ -66,6 +66,8 @@ The help flag prints a usage message and exits. The verbose and debug flags are
 used to set the verbosity level; if debug is set, the verbose flag is irrelevant.
 The interactive flag starts a REPL for user interaction. The input_files, if 
 non-empty, are run sequentially in batch-mode before exiting.
+The synthesize flag, intended to be used in batch mode, generates a program which 
+satisfies the specification given by the query.
 
 If both interactive and input_files are specified, the input_files are ignored.
 If input_files are empty, interactive is assumed by default. Thus the interactive
@@ -77,6 +79,7 @@ pub struct CommandLineArgs {
     verbose: bool,
     debug: bool,
     interactive: bool,
+    synthesize: bool,
     pub input_files: Vec<OsString>,
 }
 
@@ -84,12 +87,12 @@ impl CommandLineArgs {
     /** Reasonable default arguments, used to initialize data structures before 
     arguments are read dynamically from environment */
     pub const DEFAULT: Self = CommandLineArgs { 
-        help: false, verbose: false, debug: false, interactive: true, input_files: vec![] 
+        help: false, verbose: false, debug: false, interactive: true, synthesize: false, input_files: vec![] 
     }; 
 
     /** Arguments appropriate for test cases that require debugger functionality */
     pub const DEBUG: CommandLineArgs = CommandLineArgs { 
-        help: false, verbose: true, debug: true, interactive: false, input_files: vec![]
+        help: false, verbose: true, debug: true, interactive: false, synthesize: false, input_files: vec![]
     };
 
     /** Read and parse all arguments from environment. Expensive. */
@@ -98,15 +101,21 @@ impl CommandLineArgs {
         let help = pargs.contains(["-h", "--help"]);
         let verbose = pargs.contains(["-v", "--verbose"]);
         let debug = pargs.contains(["-d", "--debug"]);
+        let synthesize = pargs.contains(["-s", "--synthesize"]);
         let mut interactive = pargs.contains(["-i", "--interactive"]);
         let input_files: Vec<OsString> = pargs.finish();
         // For usability: if no input given, assume the programmer wants interactive
         if input_files.is_empty() {
             interactive = true;
         }
-        CommandLineArgs {help, verbose, debug, interactive, input_files}
+        CommandLineArgs {help, verbose, debug, interactive, input_files, synthesize}
     }
     
+    /** Determine whether to use synthesizer */
+    pub fn is_synthesizer_enabled(&self) -> bool {
+        self.synthesize
+    }
+
     /** Determine whether to run in batch mode */
     pub fn is_batch(&self) -> bool {
         !self.interactive
