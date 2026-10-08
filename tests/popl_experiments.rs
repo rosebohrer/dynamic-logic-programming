@@ -26,7 +26,6 @@ mod tests {
         let mut prof = Profile::new();
         //let mut machs : Vec<(PStaticMachine, PMachine)> = vec![];
         let mut debug = machs[0].dm.d.clone();
-        let mut steps_alt = 0;
         for _i in 0..REPETITIONS {
             let mut dur : Duration = Duration::new(0,0);
             let mut steps = 0;
@@ -47,12 +46,16 @@ mod tests {
     }
 
     /** Run code and record how long it takes */
-    fn pdlp_test_one(code: String) -> Profile {
+    fn pdlp_test_one(code: String, is_synth: bool) -> Profile {
         let mut dmachs : Vec<PMachine> = vec![];
         let lp_norm = statics_common::normalize(*parselp(&code.clone()).unwrap()).unwrap();
         let mut sm = PStaticMachine::new();
         let mut m = PMachine::of_lp(&mut sm, &lp_norm);
-        m.set_command_line(&CommandLineArgs::DEBUG);
+        if is_synth {
+            m.set_command_line(&CommandLineArgs::SYNTH);
+        } else {
+            m.set_command_line(&CommandLineArgs::DEBUG);
+        }
         dmachs.push(m);
         pdlp_time_runs_of_all(&mut dmachs)
     }
@@ -174,39 +177,39 @@ mod tests {
         let misc_labels: Vec<String> = vec!["exdfa".to_string(), "exnfa".to_string(), "expeg".to_string(),
           "1count".to_string(), "2count".to_string(), "nim33".to_string()];
         let mut misc_profiles : Vec<Profile> = vec![];
-        misc_profiles.push(pdlp_test_one(examples::POPL_DFA.to_string()));
-        misc_profiles.push(pdlp_test_one(examples::POPL_NFA.to_string()));
-        misc_profiles.push(pdlp_test_one(examples::POPL_PEG.to_string()));
-        misc_profiles.push(pdlp_test_one(examples::ONE_COUNTER_CONJ.to_string()));
-        misc_profiles.push(pdlp_test_one(examples::TWO_COUNTERS.to_string()));
-        misc_profiles.push(pdlp_test_one(examples::NIM_THREE_THREE.to_string()));
+        misc_profiles.push(pdlp_test_one(examples::POPL_DFA.to_string(), false));
+        misc_profiles.push(pdlp_test_one(examples::POPL_NFA.to_string(), false));
+        misc_profiles.push(pdlp_test_one(examples::POPL_PEG.to_string(), false));
+        misc_profiles.push(pdlp_test_one(examples::ONE_COUNTER_CONJ.to_string(), false));
+        misc_profiles.push(pdlp_test_one(examples::TWO_COUNTERS.to_string(), false));
+        misc_profiles.push(pdlp_test_one(examples::NIM_THREE_THREE.to_string(), false));
         
         /* TESTING PEGS */
-        let ddlp_peg_sizes = vec![/*4*/];
+        let ddlp_peg_sizes = vec![4];
         let mut ddlp_peg_profiles : Vec<Profile> = vec![];
         for size in &ddlp_peg_sizes {
             let source = Graph::cycle(*size).to_full_ddlp_source();
             ddlp_peg_profiles.push(ddlp_test_one(source));
         }
-        let pdlp_peg_sizes = vec![4/* ,5,6,7,8*/];
+        let pdlp_peg_sizes = vec![4,5,6,7,8];
         let mut pdlp_peg_profiles : Vec<Profile> = vec![];
         for size in &pdlp_peg_sizes {
             let source = Graph::cycle(*size).to_full_pdlp_source();
-            pdlp_peg_profiles.push(pdlp_test_one(source));
+            pdlp_peg_profiles.push(pdlp_test_one(source, false));
         }
 
         // Max size 19 optimal for 10-minute maximum - 20 is just over 10 minutes
         /*  TESTING COUNTERS */
-        let os_sizes = vec![1,3 ,5,7,9,11,13,15,17,19   ];
+        let os_sizes = vec![1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19];
         let mut os_profs : Vec<Profile> = vec![];
         for size in &os_sizes {
             let g = Guesser::of_size(*size);
             let source = g.to_source_single();
-            os_profs.push(pdlp_test_one(source));
+            os_profs.push(pdlp_test_one(source, true));
         }
 
         // Max size 77 is optimal for 10-minute maximum, 78 is just over
-        let ts_sizes = vec![1,3,5,7,9,11,13,15,17,19,40,80,120,160,200,240,280,320,360,400];
+        let ts_sizes = vec![1,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,40,80,120,160,200,240,280,320,360,400];
         let mut ts_profs : Vec<Profile> = vec![];
         for size in &ts_sizes {
             let g = Guesser::of_size(*size);
