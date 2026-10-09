@@ -26,11 +26,18 @@ impl Profile {
     pub fn new() -> Self {
         Profile {steps: -1, times: vec![]}
     }
+    
     pub fn add(&mut self, steps: i64, time: Duration) {
         let mut times = self.times.clone();
         times.push(time);
         *self = Profile{ steps, times }
     }
+
+    pub fn add_single(&mut self, other: &Self) -> () {
+        self.steps = self.steps + other.steps;
+        self.times[0] = self.times[0] + other.times[0];
+    }
+
     pub fn avg_time(&self) -> Duration {
         let mut acc = Duration::new(0,0);
         for v in &self.times {

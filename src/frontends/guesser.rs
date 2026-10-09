@@ -104,7 +104,6 @@ impl Guesser {
             let before = if i == 0 { "?- " } else {"& "};
             let after = if i+1 == self.secret.len() { "." } else { "\n "};
             let after_state = Self::bit_fml(i, self.secret[i]);
-            //s.push_str(&format!("{}({} -> <set{}>({})){}",before,pre_state,i,after_state,after));
             s.push_str(&format!("{}(<set{}>({})){}",before,i,after_state,after));
         }
         s
@@ -124,10 +123,8 @@ impl Guesser {
         let mut s = "".to_string();
         let mut acc : Vec<bool> = vec![];
         for i in 0..self.secret.len() {
-            //let pre_state = Self::state_fml(&acc);
             acc.push(self.secret[i]);
             let after_state = Self::state_fml(&acc);
-            //s.push_str(&format!("{} -> <set{}>({}).\n",pre_state,i,after_state));
             s.push_str(&format!("<set{}>({}).\n",i,after_state));
         }
         s

@@ -28,14 +28,12 @@ use parser::pdlp::logic_program as parselp;
     const COMPOSITIONAL_SYNTH: bool = true;
     
     /** Run code and record how long it takes */
-    fn pdlp_time_runs_of_all(machs: &mut Vec<PMachine>) -> Profile {
+    fn pdlp_time_runs_of_all(machs: &mut Vec<PMachine>, is_quiet: bool) -> Profile {
         let mut prof = Profile::new();
-        //let mut machs : Vec<(PStaticMachine, PMachine)> = vec![];
         let mut debug = machs[0].dm.d.clone();
         for _i in 0..REPETITIONS {
             let mut dur : Duration = Duration::new(0,0);
             let mut steps = 0;
-            //for m in &mut *machs {
             for i in 0..machs.len() {
                 let mut mach_start = machs[i].clone();
                 debug.start_timer();
@@ -48,8 +46,10 @@ use parser::pdlp::logic_program as parselp;
             }
             prof.add(steps, dur);
         }
-        println!("Completed {} repetitions in time: {:?}", REPETITIONS, prof.avg_time());
-        println!("Steps: {}", prof.steps);
+        if !is_quiet {
+            println!("Completed {} repetitions in time: {:?}", REPETITIONS, prof.avg_time());
+            println!("Steps: {}", prof.steps);
+        }
         prof
     }
 
@@ -65,7 +65,7 @@ use parser::pdlp::logic_program as parselp;
             m.set_command_line(&CommandLineArgs::DEBUG);
         }
         dmachs.push(m);
-        pdlp_time_runs_of_all(&mut dmachs)
+        pdlp_time_runs_of_all(&mut dmachs, false)
     }
 
     fn find_sym_name(lp: &LogicProgram) -> String {
@@ -82,7 +82,10 @@ use parser::pdlp::logic_program as parselp;
     /** Run exactly two programs, record how long they take. */
     fn pdlp_test_two(code1: String, code2: String) -> Profile {
         let mut dmachs : Vec<PMachine> = vec![];
+        // Allow running without the compositional synthesizer so that we can assess whether there is any noticeable 
+        // performance difference. Also this mode is more robust to different styles of 
         if !COMPOSITIONAL_SYNTH {
+            // In this mode, simply parse the two LPs, create machines for them, and run the machines
             let lp_norm1 = statics_common::normalize(*parselp(&code1.clone()).unwrap()).unwrap();
             let lp_norm2 = statics_common::normalize(*parselp(&code2.clone()).unwrap()).unwrap();
             let mut sm1 = PStaticMachine::new();
@@ -92,24 +95,28 @@ use parser::pdlp::logic_program as parselp;
             let mut m2 = PMachine::of_lp(&mut sm2, &lp_norm2);
             m2.set_command_line(&CommandLineArgs::DEBUG);
             dmachs.push(m1); dmachs.push(m2);
-            pdlp_time_runs_of_all(&mut dmachs)
+            pdlp_time_runs_of_all(&mut dmachs, false)
         } else {
+            // In compositional synthesis mode, split the lemma LP into all the lemmmas to be proved, prove each one, collect
+            // their resulting programs as components in the synthesizer, then after running the final main LP, substitute in
+            // the definitions of every component to get the final answer.
             let lp_norm1 = statics_common::normalize(*parselp(&code1.clone()).unwrap()).unwrap();
             let lp_norm2 = statics_common::normalize(*parselp(&code2.clone()).unwrap()).unwrap();
             let mut profs = vec![];
-            println!("MAIN-QUERY: {}", printer_common::formula(&*lp_norm1.query));
+            // Break up the lemma by top-level conjunctions. Assume all components are &-separated.
             let conjs = statics_common::conjuncts(&*lp_norm1.query);
             let mut syn = Synthesizer::default();
             for i in 0..conjs.len() {
                 let mut lp = lp_norm1.clone();
                 lp.query = Box::new(conjs[i].clone()); 
-                println!("QUERY{}: {}", i, printer_common::formula(&*lp.query));
+                // Inspect the syntax of the formula to find the component name. Assume it's in a <> formula at top of component.
                 let comp_name = find_sym_name(&lp);
                 let mut sm1 = PStaticMachine::new();
                 let mut m1 = PMachine::of_lp(&mut sm1, &lp);
                 m1.set_command_line(&CommandLineArgs::SYNTH);
                 let mut mv = vec![m1];
-                profs.push(pdlp_time_runs_of_all(&mut mv)); 
+                profs.push(pdlp_time_runs_of_all(&mut mv, true)); 
+                // Remember code synthesized for component
                 syn.save_component(&mv[0].dm.syn, &comp_name);
             }
             let mut sm2 = PStaticMachine::new();
@@ -117,16 +124,19 @@ use parser::pdlp::logic_program as parselp;
             m2.dm.syn = syn;
             m2.set_command_line(&CommandLineArgs::SYNTH); 
             let mut m2vec = vec![m2];
-            let prof_final = pdlp_time_runs_of_all(&mut m2vec);
-            // @TODO: Why not marked as finished yet 
+            let mut prof_final = pdlp_time_runs_of_all(&mut m2vec, true);
             assert!(m2vec[0].is_proved());
-            m2vec[0].dm.syn.finish();
+            // Plug in solutions of every component
             m2vec[0].dm.syn.apply_components();
             println!("COMPOSITE SYNTHESIS RESULT: {}", m2vec[0].dm.syn.pretty_result());
+            // Add up costs of every interpreter invocation
+            for i in 0..profs.len() {
+                prof_final.add_single(&profs[i]);
+            }
+            println!("Completed {} repetitions in time: {:?}", REPETITIONS, prof_final.avg_time());
+            println!("Steps: {}", prof_final.steps);
             prof_final
         }
-        
-        
     }
 
     /** Run code and record how long it takes */
@@ -136,7 +146,6 @@ use parser::pdlp::logic_program as parselp;
         for _i in 0..REPETITIONS {
             let mut dur : Duration = Duration::new(0,0);
             let mut steps = 0;
-            //for m in &mut *machs {
             for i in 0..machs.len() {
                 let mut mach_start = machs[i].clone();
                 debug.start_timer();

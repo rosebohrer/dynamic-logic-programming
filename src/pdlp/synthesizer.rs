@@ -2,10 +2,12 @@
   This synthesis algorithm is designed for the box-free fragment of PDLP.
 */
 use crate::command_line::Verbosity::DebugVerbose;
-use crate::command_line::{CommandLineArgs, Verbosity};
-use crate::ast::{Formula,Program,FormulaNode,ProgramNode};
+use crate::command_line::{CommandLineArgs};
 use std::collections::HashMap;
-use FormulaNode::*; use ProgramNode::*;
+
+// Disable to get more accurate timestamps during debugging.
+pub const ALLOW_PRINTING: bool = false;
+
 
 /** A single program constant c in the source program corresponds to a family of constants c_i for synthesis.
   This data structure represents a single such c_i */
@@ -65,6 +67,10 @@ pub struct Synthesizer {
 }
 
 impl Synthesizer {
+    fn do_print(&self) -> bool {
+        ALLOW_PRINTING && self.ca.verbosity() == DebugVerbose
+    }
+
     /** Pretty-print string for code */
     pub fn pretty_result(&self) -> String {
         match self.result.clone() {
@@ -93,7 +99,7 @@ impl Synthesizer {
     /** Start proof search */
     pub fn start(&mut self) -> () {
         if !self.ca.is_synthesizer_enabled() { return; }
-        if self.ca.verbosity() == DebugVerbose { println!("TRACE: START"); }
+        if self.do_print() { println!("TRACE: START"); }
         self.stack = vec![vec![SynthRecord{sl: vec![]}]];
     }
     
@@ -102,9 +108,9 @@ impl Synthesizer {
      */
     pub fn branch(&mut self, c: &String, n: usize) -> () {
         if !self.ca.is_synthesizer_enabled() { return; }
-        if self.ca.verbosity() == DebugVerbose { println!("TRACE: BRANCH {}/{}", c, n); }
+        if self.do_print() { println!("TRACE: BRANCH {}/{}", c, n); }
         if self.stack.is_empty() || self.stack.last().expect("NONEMPTY").is_empty() {
-            if self.ca.verbosity() == DebugVerbose { println!("TRACE: STACK: {:?}", self.stack.clone()); }
+            if self.do_print() { println!("TRACE: STACK: {:?}", self.stack.clone()); }
             return;
         }
         /* Binary branching with no effect on program, just add 1 alternative */
@@ -128,7 +134,7 @@ impl Synthesizer {
     /** Try next branch */
     pub fn next(&mut self) -> () {
         if !self.ca.is_synthesizer_enabled() { return; }
-        if self.ca.verbosity() == DebugVerbose { println!("TRACE: NEXT-START: {:?}", self.stack); }
+        if self.do_print() { println!("TRACE: NEXT-START: {:?}", self.stack); }
         if self.stack.is_empty() {
           return;
         } else {
@@ -138,19 +144,19 @@ impl Synthesizer {
             let _alt = alts.remove(0);
             if !alts.is_empty() { self.stack.push(alts); break; }
           } 
-        if self.ca.verbosity() == DebugVerbose { println!("TRACE: NEXT-END: {:?}", self.stack); }
+        if self.do_print() { println!("TRACE: NEXT-END: {:?}", self.stack); }
         }
     }
     
     /** Search has succeeeded, record current candidate program as a winner */
     pub fn finish(&mut self) -> () {
-        if !self.ca.is_synthesizer_enabled() { return; }
+        if !self.ca.is_synthesizer_enabled() { return; } 
         // points behave like a stack FIFO
         let point = if self.stack.is_empty() { vec![] } else {self.stack.last().expect("NONEMPTY").clone() }; 
         // records within a point behave left-right so take leftmost
         let record = if point.is_empty() { SynthRecord { sl : vec![]} } else {point[0].clone() }; 
         self.result = Some (record);
-        println!("TRACE: FINISH: {:?}", self.pretty_result());
+        if self.do_print() { println!("TRACE: FINISH: {:?}", self.pretty_result()); }
     }
 
     /** Save current result as component, reset result and stack. */
@@ -170,15 +176,12 @@ impl Synthesizer {
             Some(sr) => {
                 let mut out = vec![];
                 for sc in &sr.sl {
-                    println!("Comps: {:?}", self.components);
                     match self.components.get(&sc.c) {
                         None => {
-                            println!("Kept: {}", sc.c);
                             out.push(sc.clone())
                         },
                         Some(repl) => {
                             let mut sr =  repl.sl.clone();
-                            println!("Repld: {:?}", sr);
                             out.append(&mut sr)
                         },
                     }

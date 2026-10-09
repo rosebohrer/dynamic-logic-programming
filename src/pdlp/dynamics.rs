@@ -381,7 +381,7 @@ impl<'a> Machine<'a> {
       ctxt.insert(x.clone());
     }
     let clauses = &self.sm.diamond_preds[symbol];
-    /** Make sure to copy this updated synthesizer state properly in the main run() loop! */
+    /* Make sure to copy this updated synthesizer state properly in the main run() loop! */
     self.dm.syn.branch(symbol, clauses.len());
     for clause in clauses {
       let mut skip = false;
