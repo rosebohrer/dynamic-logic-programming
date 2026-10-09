@@ -91,15 +91,19 @@ impl Guesser {
         s
     }
 
+    /* Like state_fml but for one bit */
+    fn bit_fml(i: usize, bit_b: bool) -> String {
+        let bit = if bit_b { "1" } else { "0" };
+        format!("g{}=b{}", i, bit)
+    }
+
     /** Generate query for lemma file of multi-shot implementation. */
     fn lemma_query(&self) -> String {
         let mut s = "".to_string();
-        let mut acc : Vec<bool> = vec![];
         for i in 0..self.secret.len() {
             let before = if i == 0 { "?- " } else {"& "};
             let after = if i+1 == self.secret.len() { "." } else { "\n "};
-            let pre_state = Self::state_fml(&acc);
-            let after_state = Self::state_fml(&acc);
+            let after_state = Self::bit_fml(i, self.secret[i]);
             //s.push_str(&format!("{}({} -> <set{}>({})){}",before,pre_state,i,after_state,after));
             s.push_str(&format!("{}(<set{}>({})){}",before,i,after_state,after));
         }

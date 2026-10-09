@@ -72,16 +72,23 @@ impl Synthesizer {
             Some(res) => res.pretty_string(),
         }
     }
-
-    /** Initialize synthesizer based on provided command line flags */
-    pub fn of_command_line(ca: &CommandLineArgs) -> Self {
-        Synthesizer {ca: ca.clone(), stack: vec![], result: None, components: HashMap::new()}
+    
+    /** Set  command line flags */
+    pub fn set_command_line(&mut self, ca: &CommandLineArgs) -> () {
+        self.ca = ca.clone();    
     }
-
+    
     /** Initialize synthesizer to default status */
     pub fn default() -> Self {
         Synthesizer {ca: CommandLineArgs::DEFAULT, stack: vec![], result: None, components: HashMap::new()}
     } 
+
+    /** Initialize synthesizer based on provided command line flags */
+    pub fn of_command_line(ca: &CommandLineArgs) -> Self {
+        let mut res = Self::default();
+        res.set_command_line(ca);
+        res
+    }
 
     /** Start proof search */
     pub fn start(&mut self) -> () {
@@ -100,7 +107,7 @@ impl Synthesizer {
             if self.ca.verbosity() == DebugVerbose { println!("TRACE: STACK: {:?}", self.stack.clone()); }
             return;
         }
-        /** Binary branching with no effect on program, just add 1 alternative */
+        /* Binary branching with no effect on program, just add 1 alternative */
         if n == 0 {
             let curr = self.stack.last().expect("NONEMPTY")[0].clone();
             self.stack.push(vec![curr.clone(), curr]);
@@ -147,15 +154,15 @@ impl Synthesizer {
     }
 
     /** Save current result as component, reset result and stack. */
-    pub fn save_component(&mut self, name: &String) -> () {
-        match &self.result {
+    pub fn save_component(&mut self, other: &Synthesizer, name: &String) -> () {
+        match &other.result {
             None => (),
             Some(v) => { 
                 self.components.insert(name.clone(), v.clone()); self.result = None; self.stack = vec![];
             }
         }
     }
-    
+
     /** Apply all current component definitions to the result. */
     pub fn apply_components(&mut self) -> () {
         match &self.result {
@@ -163,10 +170,15 @@ impl Synthesizer {
             Some(sr) => {
                 let mut out = vec![];
                 for sc in &sr.sl {
+                    println!("Comps: {:?}", self.components);
                     match self.components.get(&sc.c) {
-                        None => out.push(sc.clone()),
+                        None => {
+                            println!("Kept: {}", sc.c);
+                            out.push(sc.clone())
+                        },
                         Some(repl) => {
                             let mut sr =  repl.sl.clone();
+                            println!("Repld: {:?}", sr);
                             out.append(&mut sr)
                         },
                     }

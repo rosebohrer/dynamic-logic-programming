@@ -13,13 +13,19 @@ use glp::{parser,command_line};
 use command_line::CommandLineArgs;
 use glp::pdlp::dynamics::{StaticMachine as PStaticMachine,Machine as PMachine};
 use glp::ddlp::dynamics::{StaticMachine as DStaticMachine,Machine as DMachine};
+use glp::pdlp::synthesizer::Synthesizer;
 use common::Profile;
+use glp::ast::{FormulaNode::*, ProgramNode::*, LogicProgram};
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use parser::pdlp::logic_program as parselp;
+    use glp::printer_common;
+use parser::pdlp::logic_program as parselp;
     const REPETITIONS: i64 = 1;
+    /* Enable synthesizer in the two-shot tests. Useful to disable this for performance profiling 
+       because its performance impact is unclear. */
+    const COMPOSITIONAL_SYNTH: bool = true;
     
     /** Run code and record how long it takes */
     fn pdlp_time_runs_of_all(machs: &mut Vec<PMachine>) -> Profile {
@@ -29,13 +35,15 @@ mod tests {
         for _i in 0..REPETITIONS {
             let mut dur : Duration = Duration::new(0,0);
             let mut steps = 0;
-            for m in &mut *machs {
-                let mut mach_start = m.clone();
+            //for m in &mut *machs {
+            for i in 0..machs.len() {
+                let mut mach_start = machs[i].clone();
                 debug.start_timer();
                 mach_start.run();
                 dur = dur + debug.elapsed_time();
                 steps = steps + mach_start.dm.d.elapsed_steps();
                 assert!(mach_start.is_proved());
+                machs[i] = mach_start;
                 
             }
             prof.add(steps, dur);
@@ -60,19 +68,65 @@ mod tests {
         pdlp_time_runs_of_all(&mut dmachs)
     }
 
+    fn find_sym_name(lp: &LogicProgram) -> String {
+        match &lp.query.node {
+            MDiamond(sym, _) => {  
+                match &sym.node {
+                    Symbol(sc) => sc.clone(),
+                    _ => "N/A".to_string(),
+                }},
+            _ => "N/A".to_string(),
+        }
+     }
+
     /** Run exactly two programs, record how long they take. */
     fn pdlp_test_two(code1: String, code2: String) -> Profile {
         let mut dmachs : Vec<PMachine> = vec![];
-        let lp_norm1 = statics_common::normalize(*parselp(&code1.clone()).unwrap()).unwrap();
-        let lp_norm2 = statics_common::normalize(*parselp(&code2.clone()).unwrap()).unwrap();
-        let mut sm1 = PStaticMachine::new();
-        let mut m1 = PMachine::of_lp(&mut sm1, &lp_norm1);
-        let mut sm2 = PStaticMachine::new();
-        let mut m2 = PMachine::of_lp(&mut sm2, &lp_norm2);
-        m1.set_command_line(&CommandLineArgs::DEBUG);
-        m2.set_command_line(&CommandLineArgs::DEBUG);
-        dmachs.push(m1); dmachs.push(m2);
-        pdlp_time_runs_of_all(&mut dmachs)
+        if !COMPOSITIONAL_SYNTH {
+            let lp_norm1 = statics_common::normalize(*parselp(&code1.clone()).unwrap()).unwrap();
+            let lp_norm2 = statics_common::normalize(*parselp(&code2.clone()).unwrap()).unwrap();
+            let mut sm1 = PStaticMachine::new();
+            let mut m1 = PMachine::of_lp(&mut sm1, &lp_norm1);
+            m1.set_command_line(&CommandLineArgs::DEBUG);
+            let mut sm2 = PStaticMachine::new();
+            let mut m2 = PMachine::of_lp(&mut sm2, &lp_norm2);
+            m2.set_command_line(&CommandLineArgs::DEBUG);
+            dmachs.push(m1); dmachs.push(m2);
+            pdlp_time_runs_of_all(&mut dmachs)
+        } else {
+            let lp_norm1 = statics_common::normalize(*parselp(&code1.clone()).unwrap()).unwrap();
+            let lp_norm2 = statics_common::normalize(*parselp(&code2.clone()).unwrap()).unwrap();
+            let mut profs = vec![];
+            println!("MAIN-QUERY: {}", printer_common::formula(&*lp_norm1.query));
+            let conjs = statics_common::conjuncts(&*lp_norm1.query);
+            let mut syn = Synthesizer::default();
+            for i in 0..conjs.len() {
+                let mut lp = lp_norm1.clone();
+                lp.query = Box::new(conjs[i].clone()); 
+                println!("QUERY{}: {}", i, printer_common::formula(&*lp.query));
+                let comp_name = find_sym_name(&lp);
+                let mut sm1 = PStaticMachine::new();
+                let mut m1 = PMachine::of_lp(&mut sm1, &lp);
+                m1.set_command_line(&CommandLineArgs::SYNTH);
+                let mut mv = vec![m1];
+                profs.push(pdlp_time_runs_of_all(&mut mv)); 
+                syn.save_component(&mv[0].dm.syn, &comp_name);
+            }
+            let mut sm2 = PStaticMachine::new();
+            let mut m2 = PMachine::of_lp(&mut sm2, &lp_norm2);
+            m2.dm.syn = syn;
+            m2.set_command_line(&CommandLineArgs::SYNTH); 
+            let mut m2vec = vec![m2];
+            let prof_final = pdlp_time_runs_of_all(&mut m2vec);
+            // @TODO: Why not marked as finished yet 
+            assert!(m2vec[0].is_proved());
+            m2vec[0].dm.syn.finish();
+            m2vec[0].dm.syn.apply_components();
+            println!("COMPOSITE SYNTHESIS RESULT: {}", m2vec[0].dm.syn.pretty_result());
+            prof_final
+        }
+        
+        
     }
 
     /** Run code and record how long it takes */
@@ -82,12 +136,14 @@ mod tests {
         for _i in 0..REPETITIONS {
             let mut dur : Duration = Duration::new(0,0);
             let mut steps = 0;
-            for m in &mut *machs {
-                let mut mach_start = m.clone();
+            //for m in &mut *machs {
+            for i in 0..machs.len() {
+                let mut mach_start = machs[i].clone();
                 debug.start_timer();
                 mach_start.run();
                 dur = dur + debug.elapsed_time();
                 steps = steps + mach_start.dm.d.elapsed_steps();
+                machs[i] = mach_start;
             }
             prof.add(steps, dur);
         }
