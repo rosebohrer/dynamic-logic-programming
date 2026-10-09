@@ -4,6 +4,7 @@
 use crate::command_line::Verbosity::DebugVerbose;
 use crate::command_line::{CommandLineArgs, Verbosity};
 use crate::ast::{Formula,Program,FormulaNode,ProgramNode};
+use std::collections::HashMap;
 use FormulaNode::*; use ProgramNode::*;
 
 /** A single program constant c in the source program corresponds to a family of constants c_i for synthesis.
@@ -59,6 +60,8 @@ pub struct Synthesizer {
   pub stack: Vec<Vec<SynthRecord>>,
   /** Successfully synthesized program at end of search, if any */
   pub result: Option<SynthRecord>,
+  /** Used only for compositional synthesis problems. Records all components so far. */
+  pub components: HashMap<String, SynthRecord>,
 }
 
 impl Synthesizer {
@@ -72,12 +75,12 @@ impl Synthesizer {
 
     /** Initialize synthesizer based on provided command line flags */
     pub fn of_command_line(ca: &CommandLineArgs) -> Self {
-        Synthesizer {ca: ca.clone(), stack: vec![], result: None}
+        Synthesizer {ca: ca.clone(), stack: vec![], result: None, components: HashMap::new()}
     }
 
     /** Initialize synthesizer to default status */
     pub fn default() -> Self {
-        Synthesizer {ca: CommandLineArgs::DEFAULT, stack: vec![], result: None}
+        Synthesizer {ca: CommandLineArgs::DEFAULT, stack: vec![], result: None, components: HashMap::new()}
     } 
 
     /** Start proof search */
@@ -141,5 +144,35 @@ impl Synthesizer {
         let record = if point.is_empty() { SynthRecord { sl : vec![]} } else {point[0].clone() }; 
         self.result = Some (record);
         println!("TRACE: FINISH: {:?}", self.pretty_result());
+    }
+
+    /** Save current result as component, reset result and stack. */
+    pub fn save_component(&mut self, name: &String) -> () {
+        match &self.result {
+            None => (),
+            Some(v) => { 
+                self.components.insert(name.clone(), v.clone()); self.result = None; self.stack = vec![];
+            }
+        }
+    }
+    
+    /** Apply all current component definitions to the result. */
+    pub fn apply_components(&mut self) -> () {
+        match &self.result {
+            None => (),
+            Some(sr) => {
+                let mut out = vec![];
+                for sc in &sr.sl {
+                    match self.components.get(&sc.c) {
+                        None => out.push(sc.clone()),
+                        Some(repl) => {
+                            let mut sr =  repl.sl.clone();
+                            out.append(&mut sr)
+                        },
+                    }
+                }
+                self.result = Some(SynthRecord { sl: out })
+            }
+        }
     }
 }

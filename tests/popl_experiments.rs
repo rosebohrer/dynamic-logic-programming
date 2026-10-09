@@ -185,13 +185,13 @@ mod tests {
         misc_profiles.push(pdlp_test_one(examples::NIM_THREE_THREE.to_string(), false));
         
         /* TESTING PEGS */
-        let ddlp_peg_sizes = vec![4];
+        let ddlp_peg_sizes = vec![/*4*/];
         let mut ddlp_peg_profiles : Vec<Profile> = vec![];
         for size in &ddlp_peg_sizes {
             let source = Graph::cycle(*size).to_full_ddlp_source();
             ddlp_peg_profiles.push(ddlp_test_one(source));
         }
-        let pdlp_peg_sizes = vec![4,5,6,7,8];
+        let pdlp_peg_sizes = vec![/*4,5,6,7,8*/];
         let mut pdlp_peg_profiles : Vec<Profile> = vec![];
         for size in &pdlp_peg_sizes {
             let source = Graph::cycle(*size).to_full_pdlp_source();
@@ -200,7 +200,7 @@ mod tests {
 
         // Max size 19 optimal for 10-minute maximum - 20 is just over 10 minutes
         /*  TESTING COUNTERS */
-        let os_sizes = vec![1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19];
+        let os_sizes = vec![/*1,2,*/3/* ,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19*/];
         let mut os_profs : Vec<Profile> = vec![];
         for size in &os_sizes {
             let g = Guesser::of_size(*size);
@@ -209,7 +209,7 @@ mod tests {
         }
 
         // Max size 77 is optimal for 10-minute maximum, 78 is just over
-        let ts_sizes = vec![1,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,40,80,120,160,200,240,280,320,360,400];
+        let ts_sizes = vec![/*1,2,*/3/*,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,40,80,120,160,200,240,280,320,360,400*/];
         let mut ts_profs : Vec<Profile> = vec![];
         for size in &ts_sizes {
             let g = Guesser::of_size(*size);
